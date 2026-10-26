@@ -18,6 +18,14 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 EDITIONS = {"first": "First", "revised": "Revised"}
+EPUB_NAMES = {
+    "first": "The_World_After_The_Fall_First_Edition",
+    "revised": "The_World_After_The_Fall_Revised",
+}
+COVER_FILES = {
+    "first": "first_upscaled.png",
+    "revised": "revised_upscaled_2.png",
+}
 NS = "{http://www.w3.org/1999/xhtml}"
 ALLOWED = {
     "body",
@@ -110,7 +118,7 @@ def build_epub(target, edition, rows, cover, modified):
         '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
         '<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>',
         '<item id="style" href="style.css" media-type="text/css"/>',
-        '<item id="cover-image" href="cover.jpg" media-type="image/jpeg" properties="cover-image"/>',
+        '<item id="cover-image" href="cover.png" media-type="image/png" properties="cover-image"/>',
         '<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>',
     ]
     items += [
@@ -144,12 +152,12 @@ def build_epub(target, edition, rows, cover, modified):
         z.writestr("OEBPS/nav.xhtml", nav)
         z.writestr("OEBPS/toc.ncx", ncx)
         z.writestr("OEBPS/style.css", STYLE)
-        z.write(cover, "OEBPS/cover.jpg")
+        z.write(cover, "OEBPS/cover.png")
         z.writestr(
             "OEBPS/cover.xhtml",
             document(
                 title,
-                '<div class="cover"><img src="cover.jpg" alt="Book cover"/></div>',
+                '<div class="cover"><img src="cover.png" alt="Book cover"/></div>',
             ),
         )
         for c in rows:
@@ -211,13 +219,13 @@ def build(root=ROOT):
                     {k: c[k] for k in ["number", "title", "words"]} | {"path": path}
                 )
             build_epub(
-                out / "assets" / f"{v}.epub",
+                out / "assets" / f"{EPUB_NAMES[v]}.epub",
                 v,
                 rows,
-                out / "assets" / f"{v}.jpg",
+                out / "assets" / COVER_FILES[v],
                 modified,
             )
-            verify_epub(out / "assets" / f"{v}.epub", rows)
+            verify_epub(out / "assets" / f"{EPUB_NAMES[v]}.epub", rows)
         (out / "data/catalog.json").write_text(
             json.dumps(catalog, ensure_ascii=False), encoding="utf-8"
         )
@@ -244,12 +252,12 @@ def build(root=ROOT):
         p.write_text(s, encoding="utf-8")
         # Version dynamic cover URLs too, so replacing an image refreshes both pages.
         cover_hash = hashlib.sha256(
-            b"".join((out / "assets" / f"{v}.jpg").read_bytes() for v in EDITIONS)
+            b"".join((out / "assets" / COVER_FILES[v]).read_bytes() for v in EDITIONS)
         ).hexdigest()[:12]
         app = out / "app.js"
         app.write_text(
             re.sub(
-                r"(assets/\$\{(?:version|v)\}\.jpg)(?=`)",
+                r"(assets/(?:first_upscaled|revised_upscaled_2)\.png)(?=[`'\"])",
                 lambda m: m.group(1) + "?v=" + cover_hash,
                 app.read_text(encoding="utf-8"),
             ),
@@ -265,7 +273,7 @@ def build(root=ROOT):
                 return match.group(1) + name + "?v=" + digest + '"'
 
             markup = re.sub(
-                r'((?:src|href)=")((?:assets/)?[A-Za-z0-9_-]+\.(?:js|css|jpg))"',
+                r'((?:src|href)=")((?:assets/)?[A-Za-z0-9_-]+\.(?:js|css|jpg|png))"',
                 version_asset,
                 markup,
             )
@@ -280,7 +288,7 @@ def build(root=ROOT):
                     },
                     "epubs": {
                         v: hashlib.sha256(
-                            (out / "assets" / f"{v}.epub").read_bytes()
+                            (out / "assets" / f"{EPUB_NAMES[v]}.epub").read_bytes()
                         ).hexdigest()
                         for v in EDITIONS
                     },

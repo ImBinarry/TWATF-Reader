@@ -43,13 +43,21 @@ const fonts = {
   verdana: "Verdana, Geneva, sans-serif",
   mono: 'ui-monospace, "Courier New", monospace',
 };
+const covers = {
+  first: "assets/first_upscaled.png",
+  revised: "assets/revised_upscaled_2.png",
+};
+const epubs = {
+  first: "assets/The_World_After_The_Fall_First_Edition.epub",
+  revised: "assets/The_World_After_The_Fall_Revised.epub",
+};
 const isIndex = location.pathname.endsWith("/chapters.html");
 let reverseIndex = false;
 function indexRender() {
   if (!catalog) return;
-  $("#index-cover").src = `assets/${version}.jpg`;
+  $("#index-cover").src = covers[version];
   $("#index-version").value = version;
-  $("#index-download").href = `assets/${version}.epub`;
+  $("#index-download").href = epubs[version];
   const p = state.progress[version];
   $("#index-resume").href = `index.html#read/${version}/${p?.number || 1}`;
   $("#index-resume").textContent = p
@@ -141,8 +149,8 @@ function choose(v) {
     b.classList.toggle("selected", b.dataset.version === v);
     b.setAttribute("aria-pressed", b.dataset.version === v);
   });
-  $("#cover").src = `assets/${v}.jpg`;
-  $("#download").href = `assets/${v}.epub`;
+  $("#cover").src = covers[v];
+  $("#download").href = epubs[v];
   $("#list-version").value = v;
   const p = state.progress[v];
   $("#start").innerHTML = "Chapters <span>↗</span>";
