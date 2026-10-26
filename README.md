@@ -39,7 +39,7 @@ There are two editions:
 
 Corrections and contributions are welcome!
 
-- Edit `chapters/first/` or `chapters/revised/` — never `dist/`.
+- Edit `chapters/first/` or `chapters/revised/`
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 - Questions? Join our [Discord Server](https://discord.gg/mRKHnmQnYJ).
 
