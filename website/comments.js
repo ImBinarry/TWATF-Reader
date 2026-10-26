@@ -1,5 +1,56 @@
 // Giscus uses a stable edition/chapter key, never the shared index.html pathname.
 (() => {
+  const GISCUS_SESSION_KEY = "giscus-session";
+  const params = new URLSearchParams(location.search);
+  const giscusSession = params.get("giscus");
+
+  if (giscusSession) {
+    try {
+      localStorage.setItem(GISCUS_SESSION_KEY, JSON.stringify(giscusSession));
+    } catch {}
+
+    if (window.opener && window.opener !== window) {
+      try {
+        window.close();
+      } catch {}
+    } else {
+      let returnTo =
+        location.hash && location.hash.startsWith("#read/")
+          ? location.hash
+          : sessionStorage.getItem("giscus-return-to");
+
+      if (!returnTo) {
+        try {
+          const state = JSON.parse(localStorage.getItem("twatf-reader") || "{}");
+          const v = state.version || "first";
+          const n = state.progress?.[v]?.number || 1;
+          returnTo = `#read/${v}/${n}`;
+        } catch {}
+      }
+
+      params.delete("giscus");
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      const cleanUrl = `${location.pathname}${qs}${returnTo || ""}`;
+      history.replaceState(null, "", cleanUrl);
+      if (returnTo && location.hash !== returnTo) {
+        location.hash = returnTo;
+      }
+    }
+  }
+
+  window.addEventListener("storage", (e) => {
+    if (e.key === GISCUS_SESSION_KEY && e.newValue) {
+      const frame = mount()?.querySelector("iframe.giscus-frame");
+      if (frame) {
+        try {
+          const url = new URL(frame.src);
+          url.searchParams.set("session", JSON.parse(e.newValue));
+          frame.src = url.toString();
+        } catch {}
+      }
+    }
+  });
+
   let active = null,
     activeEdition = null,
     started = false;
@@ -33,6 +84,9 @@
     show(edition, number) {
       active = `twatf-${edition}-chapter-${number}`;
       activeEdition = edition;
+      try {
+        sessionStorage.setItem("giscus-return-to", `#read/${edition}/${number}`);
+      } catch {}
       const section = document.getElementById("comments"),
         status = document.getElementById("comments-status");
       section.hidden = false;
