@@ -1,0 +1,9 @@
+dist/
+.build-*/
+__pycache__/
+*.pyc
+.DS_Store
+.openai/
+.idea/
+DEPLOYMENT-GUIDE.md
+deployment_guide.md

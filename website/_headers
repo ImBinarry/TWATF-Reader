@@ -1,0 +1,6 @@
+/assets/*.epub
+  Cache-Control: public, max-age=0, must-revalidate
+/data/*
+  Cache-Control: public, max-age=0, must-revalidate
+/build-manifest.json
+  Cache-Control: no-cache
