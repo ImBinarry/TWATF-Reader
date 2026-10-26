@@ -5,6 +5,7 @@
   "scripts": {
     "build": "python3 scripts/build.py",
     "test": "python3 -m unittest discover -s tests -v",
+    "deploy:pages": "wrangler pages deploy dist --project-name=twatf",
     "preview": "python3 -c \"import http.server, os, socket; port=8765; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.connect(('8.8.8.8',80)); ip=s.getsockname()[0]; s.close(); os.chdir('dist'); print('\\n  Local:   http://localhost:{}/\\n  Network: http://{}:{}/\\n'.format(port,ip,port)); http.server.HTTPServer(('0.0.0.0',port),http.server.SimpleHTTPRequestHandler).serve_forever()\""
   }
 }
