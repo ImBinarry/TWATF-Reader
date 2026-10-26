@@ -51,7 +51,9 @@ const epubs = {
   first: "assets/The_World_After_The_Fall_First_Edition.epub",
   revised: "assets/The_World_After_The_Fall_Revised.epub",
 };
-const isIndex = location.pathname.endsWith("/chapters.html");
+const checkIsIndex = () =>
+  /(?:^|\/)chapters(?:\.html)?\/?$/i.test(location.pathname) ||
+  location.hash === "#chapters";
 let reverseIndex = false;
 function indexRender() {
   if (!catalog) return;
@@ -200,7 +202,7 @@ function list() {
       storePosition();
       $("#contents").close();
       const hash = `#read/${selected}/${c.number}`;
-      if (isIndex) location.href = "index.html" + hash;
+      if (checkIsIndex()) location.href = "index.html" + hash;
       else location.hash = hash;
     };
     $("#chapter-results").append(button);
@@ -241,7 +243,7 @@ function storePosition() {
 async function route() {
   const id = ++loadId;
   window.readerComments.clear();
-  if (isIndex) {
+  if (checkIsIndex()) {
     current = null;
     $("#home").hidden = true;
     $("#reader").hidden = true;
@@ -255,6 +257,7 @@ async function route() {
   if (!match) {
     current = null;
     $("#home").hidden = false;
+    $("#chapter-index").hidden = true;
     $("#reader").hidden = true;
     choose(version);
     document.title = "The World After the Fall — Reader";
@@ -272,6 +275,7 @@ async function route() {
   choose(v);
   current = entry;
   $("#home").hidden = true;
+  $("#chapter-index").hidden = true;
   $("#reader").hidden = false;
   $("#chapter").textContent = "Opening chapter…";
   $("#edition-label").textContent =
