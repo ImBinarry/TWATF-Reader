@@ -605,7 +605,12 @@ def generate_sitemap(out, books):
     for edition in ("first", "revised"):
         for c in books[edition]:
             urls.append(f"{SITE_URL}/{edition}/chapter-{c['number']}")
-    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
+        '        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">',
+    ]
     for url in urls:
         lines.append(f"  <url>\n    <loc>{xml(url)}</loc>\n  </url>")
     lines.append("</urlset>")
