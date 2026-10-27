@@ -426,3 +426,62 @@ function resizeText(delta) {
 }
 $("#size-down").onclick = () => resizeText(-1);
 $("#size-up").onclick = () => resizeText(1);
+
+
+// ── Reader header: auto-hide on scroll-down, reveal on scroll-up / left-click ──
+(function () {
+  let lastY = 0,
+    headerPinnedByClick = false,
+    scrollTicking = false;
+
+  function isInReader() {
+    return !$("#reader").hidden;
+  }
+  function showHeader() {
+    document.body.classList.remove("header-hidden");
+  }
+  function hideHeader() {
+    document.body.classList.add("header-hidden");
+  }
+
+  // Scroll: hide going down, reveal going up
+  addEventListener(
+    "scroll",
+    () => {
+      if (!isInReader()) {
+        showHeader();
+        lastY = scrollY;
+        return;
+      }
+      if (!scrollTicking) {
+        requestAnimationFrame(() => {
+          const delta = scrollY - lastY;
+          if (delta > 6 && !headerPinnedByClick) {
+            hideHeader();
+          } else if (delta < -6) {
+            showHeader();
+            headerPinnedByClick = false;
+          }
+          lastY = scrollY;
+          scrollTicking = false;
+        });
+        scrollTicking = true;
+      }
+    },
+    { passive: true },
+  );
+
+  // Left-click in the reading area toggles header visibility
+  document.addEventListener("click", (e) => {
+    if (!isInReader()) return;
+    if (e.target.closest("header, dialog, .reader-nav, #comments, button, a, select, input"))
+      return;
+    if (document.body.classList.contains("header-hidden")) {
+      showHeader();
+      headerPinnedByClick = true;
+    } else {
+      hideHeader();
+      headerPinnedByClick = false;
+    }
+  });
+})();

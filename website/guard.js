@@ -1,7 +1,5 @@
-// A lightweight deterrent only. Browser menus and external inspection remain available.
-addEventListener("contextmenu", (event) => {
-  if (!event.target.closest("input,textarea")) event.preventDefault();
-});
+// Developer-tools key shortcuts are blocked as a light deterrent;
+// right-click context menu is intentionally left enabled.
 addEventListener(
   "keydown",
   (event) => {
