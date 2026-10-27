@@ -45,4 +45,81 @@ class BuildTests(unittest.TestCase):
   with zipfile.ZipFile(self.root/f'dist/assets/{revised_epub}') as z:
    actual=ET.fromstring(z.read('OEBPS/chapter-2.xhtml')).find(builder.NS+'body')
    self.assertEqual(''.join(actual.itertext()),expected)
+ def test_discoverability_and_indexability(self):
+  import re,xml.etree.ElementTree as ET
+  builder.build(self.root)
+  dist=self.root/'dist'
+  # (a) out files exist
+  expected_files=['first.html','revised.html','first/chapter-1.html','first/chapter-2.html','revised/chapter-1.html','revised/chapter-2.html','404.html','sitemap.xml','robots.txt']
+  for f in expected_files:
+   self.assertTrue((dist/f).is_file(),f'Missing expected file: {f}')
+  # (b) chapter page contents, raw HTML, correct edition, data-prerendered, base, canonical, h1
+  for v in builder.EDITIONS:
+   for n in [1,2]:
+    p=dist/v/f'chapter-{n}.html';content=p.read_text(encoding='utf-8')
+    src_body=ET.parse(self.root/'chapters'/v/f'{n:04}.xhtml').getroot().find(builder.NS+'body')
+    sample=max([''.join(el.itertext()).strip() for el in src_body.iter(builder.NS+'p')],key=len)
+    self.assertIn(sample,content)
+    self.assertIn(f'data-prerendered="{v}/{n}"',content)
+    self.assertIn('<base href="/" />',content)
+    canons=re.findall(r'<link[^>]+rel=["\']canonical["\'][^>]+href=["\']([^"\']+)["\']',content)
+    self.assertEqual(canons,[f'{builder.SITE_URL}/{v}/chapter-{n}'])
+    self.assertEqual(len(re.findall(r'<h1[\s>]',content)),1)
+    if v=='revised':
+     first_body=ET.parse(self.root/'chapters/first'/f'{n:04}.xhtml').getroot().find(builder.NS+'body')
+     first_sample=max([''.join(el.itertext()).strip() for el in first_body.iter(builder.NS+'p')],key=len)
+     self.assertNotIn(first_sample,content)
+  # (c) all <title> values and canonical URLs across generated pages are unique
+  pages=list(dist.glob('*.html'))+[dist/'first/chapter-1.html',dist/'first/chapter-2.html',dist/'revised/chapter-1.html',dist/'revised/chapter-2.html']
+  titles={};canonicals={}
+  for p in pages:
+   c=p.read_text(encoding='utf-8')
+   tm=re.findall(r'<title>([^<]+)</title>',c)
+   self.assertEqual(len(tm),1,f'{p.name}: expected 1 title')
+   self.assertNotIn(tm[0],titles,f'Duplicate title {tm[0]}')
+   titles[tm[0]]=p.name
+   cm=re.findall(r'<link[^>]+rel=["\']canonical["\'][^>]+href=["\']([^"\']+)["\']',c)
+   if p.name=='404.html':self.assertEqual(len(cm),0)
+   elif p.name=='chapters.html':self.assertEqual(cm,[f'{builder.SITE_URL}/revised'])
+   else:
+    self.assertEqual(len(cm),1,f'{p.name}: expected 1 canonical')
+    self.assertNotIn(cm[0],canonicals,f'Duplicate canonical {cm[0]}')
+    canonicals[cm[0]]=p.name
+  # (d) rel="prev"/rel="next" targets are correct and absent at boundaries
+  for v in builder.EDITIONS:
+   c1=(dist/v/'chapter-1.html').read_text()
+   self.assertNotIn('rel="prev"',c1)
+   self.assertIn(f'rel="next" href="/{v}/chapter-2"',c1)
+   c2=(dist/v/'chapter-2.html').read_text()
+   self.assertIn(f'rel="prev" href="/{v}/chapter-1"',c2)
+   self.assertNotIn('rel="next"',c2)
+  # (e) every internal href starting with "/" resolves
+  for p in pages:
+   c=p.read_text(encoding='utf-8')
+   for m in re.finditer(r'href=["\'](/[^"\'#?]*)[?#"\']',c):
+    target=m.group(1).lstrip('/')
+    if not target:resolved=(dist/'index.html').is_file()
+    else:resolved=(dist/target).exists() or (dist/f'{target}.html').is_file()
+    self.assertTrue(resolved,f'{p.name} internal href /{target} does not resolve')
+  # (f) sitemap parses as XML, contains expected canonicals, excludes /chapters, no lastmod; robots references sitemap
+  stree=ET.parse(dist/'sitemap.xml');surls=[el.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc').text for el in stree.getroot()]
+  expected_urls={f'{builder.SITE_URL}/',f'{builder.SITE_URL}/first',f'{builder.SITE_URL}/revised',f'{builder.SITE_URL}/info',
+                 f'{builder.SITE_URL}/first/chapter-1',f'{builder.SITE_URL}/first/chapter-2',
+                 f'{builder.SITE_URL}/revised/chapter-1',f'{builder.SITE_URL}/revised/chapter-2'}
+  self.assertEqual(set(surls),expected_urls)
+  self.assertNotIn(f'{builder.SITE_URL}/chapters',surls)
+  self.assertEqual(len(stree.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')),0)
+  self.assertIn('Sitemap: https://twatf.pages.dev/sitemap.xml',(dist/'robots.txt').read_text())
+  # (g) no generated page contains "{{"
+  for p in pages:
+   self.assertNotIn('{{',p.read_text(encoding='utf-8'),f'{p.name} contains leftover placeholder')
+  # (h) generated pages carry ?v= on app.js/style.css, canonical/og have no ?v=
+  for p in pages:
+   c=p.read_text(encoding='utf-8')
+   if 'app.js' in c:self.assertRegex(c,r'app\.js\?v=[0-9a-f]+')
+   if 'style.css' in c:self.assertRegex(c,r'style\.css\?v=[0-9a-f]+')
+   for cm in re.finditer(r'<link[^>]+rel=["\']canonical["\'][^>]+>',c):
+    self.assertNotIn('?v=',cm.group())
+   for om in re.finditer(r'<meta[^>]+property=["\']og:url["\'][^>]+>',c):
+    self.assertNotIn('?v=',om.group())
 if __name__=='__main__':unittest.main()

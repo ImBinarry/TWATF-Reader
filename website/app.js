@@ -1,8 +1,31 @@
 "use strict";
+
+// ── Hash/path redirects — run before anything else ──
+const _isRedirecting = (() => {
+  const h = location.hash;
+  const hashMatch = h.match(/^#read\/(first|revised)\/(\d+)$/);
+  if (hashMatch) {
+    location.replace(`/${hashMatch[1]}/chapter-${hashMatch[2]}`);
+    return true;
+  }
+
+  const p = location.pathname;
+  if (/(?:^|\/)chapters(?:\.html)?\/?$/i.test(p)) {
+    const ed = new URLSearchParams(location.search).get("edition");
+    if (ed === "first" || ed === "revised") {
+      location.replace("/" + ed);
+      return true;
+    }
+  }
+  return false;
+})();
+
+if (!_isRedirecting) {
 const $ = (s) => document.querySelector(s);
 let catalog,
   version = "revised",
   current = null,
+  currentEdition = null,
   onlyBookmarks = false,
   loadId = 0,
   restoring = false;
@@ -44,24 +67,48 @@ const fonts = {
   mono: 'ui-monospace, "Courier New", monospace',
 };
 const covers = {
-  first: "assets/first_upscaled.png",
-  revised: "assets/revised_upscaled_2.png",
+  first: "assets/first-cover.webp",
+  revised: "assets/revised-cover.webp",
 };
 const epubs = {
   first: "assets/The_World_After_The_Fall_First_Edition.epub",
   revised: "assets/The_World_After_The_Fall_Revised.epub",
 };
-const checkIsIndex = () =>
-  /(?:^|\/)chapters(?:\.html)?\/?$/i.test(location.pathname) ||
-  location.hash === "#chapters";
+
+// Derive mode from pathname
+function getRouteInfo() {
+  const p = location.pathname;
+  // /first/chapter-N or /revised/chapter-N
+  const chapterMatch = p.match(/^\/(first|revised)\/chapter-(\d+)\/?$/i);
+  if (chapterMatch) {
+    return { mode: "reader", edition: chapterMatch[1], n: Number(chapterMatch[2]) };
+  }
+  // /first or /revised (edition page) or /chapters
+  if (/^\/(first|revised)\/?$/i.test(p)) {
+    const ed = p.replace(/^\//,"").replace(/\/$/,"").toLowerCase();
+    return { mode: "index", edition: ed };
+  }
+  if (/(?:^|\/)chapters(?:\.html)?\/?$/i.test(p)) {
+    return { mode: "index", edition: null }; // fallback to saved edition
+  }
+  // default: home
+  return { mode: "home" };
+}
+
+const checkIsIndex = () => {
+  const { mode } = getRouteInfo();
+  return mode === "index";
+};
+
 let reverseIndex = false;
 function indexRender() {
   if (!catalog) return;
+  const p = state.progress[version];
+  const resumeN = p?.number || 1;
   $("#index-cover").src = covers[version];
   $("#index-version").value = version;
   $("#index-download").href = epubs[version];
-  const p = state.progress[version];
-  $("#index-resume").href = `index.html#read/${version}/${p?.number || 1}`;
+  $("#index-resume").href = `/${version}/chapter-${resumeN}`;
   $("#index-resume").textContent = p
     ? `Continue · Chapter ${p.number} →`
     : "Start reading →";
@@ -75,15 +122,15 @@ function indexRender() {
   $("#index-count").textContent = rows.length + " chapters";
   $("#index-results").replaceChildren();
   if (!rows.length) {
-    const p = document.createElement("p");
-    p.className = "summary";
-    p.textContent = "No chapters match your search.";
-    $("#index-results").append(p);
+    const pEl = document.createElement("p");
+    pEl.className = "summary";
+    pEl.textContent = "No chapters match your search.";
+    $("#index-results").append(pEl);
   }
   rows.forEach((c) => {
     const a = document.createElement("a");
     a.className = "chapter-card";
-    a.href = `index.html#read/${version}/${c.number}`;
+    a.href = `/${version}/chapter-${c.number}`;
     if (p?.number === c.number) {
       a.classList.add("last-read");
       a.setAttribute("aria-current", "true");
@@ -104,7 +151,7 @@ function indexRender() {
 }
 function goIndex() {
   storePosition();
-  location.href = `chapters.html?edition=${version}`;
+  location.href = `/${version}`;
 }
 function support(kind) {
   const donations = kind === "donations";
@@ -151,14 +198,27 @@ function choose(v) {
     b.classList.toggle("selected", b.dataset.version === v);
     b.setAttribute("aria-pressed", b.dataset.version === v);
   });
-  $("#cover").src = covers[v];
-  $("#download").href = epubs[v];
+  const coverEl = $("#cover");
+  if (coverEl) coverEl.src = covers[v];
+  const dlEl = $("#download");
+  if (dlEl) dlEl.href = epubs[v];
   $("#list-version").value = v;
   const p = state.progress[v];
-  $("#start").innerHTML = "Chapters <span>↗</span>";
-  $("#resume-note").textContent = p
-    ? `Continue ${v} edition · Chapter ${p.number}. Your place is saved on this device.`
-    : "Your place is saved automatically on this device.";
+  // Update the #start link href if it exists as an <a>
+  const startEl = $("#start");
+  if (startEl) {
+    if (startEl.tagName === "A") {
+      startEl.href = `/${v}`;
+    } else {
+      startEl.innerHTML = "Chapters <span>↗</span>";
+    }
+  }
+  const resumeNote = $("#resume-note");
+  if (resumeNote) {
+    resumeNote.textContent = p
+      ? `Continue ${v} edition · Chapter ${p.number}. Your place is saved on this device.`
+      : "Your place is saved automatically on this device.";
+  }
 }
 function list() {
   if (!catalog) return;
@@ -175,7 +235,8 @@ function list() {
     : onlyBookmarks
       ? "No bookmarks here yet. Save one while reading."
       : "No chapters match your search.";
-  const reading = location.hash.match(/^#read\/(first|revised)\/(\d+)$/);
+  // Determine current chapter from path
+  const { mode, edition: pathEdition, n: pathN } = getRouteInfo();
   rows.forEach((c) => {
     const button = document.createElement("button");
     button.className = "popup-chapter";
@@ -187,7 +248,7 @@ function list() {
     title.textContent =
       c.title.replace(/^Chapter \d+\s*[-:]?\s*/, "") || c.title;
     button.append(number, title);
-    if (reading && reading[1] === selected && Number(reading[2]) === c.number) {
+    if (mode === "reader" && pathEdition === selected && pathN === c.number) {
       button.classList.add("current-chapter");
       button.setAttribute("aria-current", "page");
     }
@@ -201,9 +262,7 @@ function list() {
     button.onclick = () => {
       storePosition();
       $("#contents").close();
-      const hash = `#read/${selected}/${c.number}`;
-      if (checkIsIndex()) location.href = "index.html" + hash;
-      else location.hash = hash;
+      location.href = `/${selected}/chapter-${c.number}`;
     };
     $("#chapter-results").append(button);
   });
@@ -232,100 +291,140 @@ function mark() {
 function storePosition() {
   if (!current || restoring || $("#reader").hidden) return;
   const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
-  const activeVersion = location.hash.split("/")[1];
-  if (!["first", "revised"].includes(activeVersion)) return;
-  state.progress[activeVersion] = {
+  const activeEdition = currentEdition;
+  if (!["first", "revised"].includes(activeEdition)) return;
+  state.progress[activeEdition] = {
     number: current.number,
     ratio: Math.min(1, scrollY / max),
   };
   save();
 }
+
+// Shared post-load logic (used by prerendered and fetched paths)
+function afterChapterLoaded(v, n, entry, idx) {
+  window.readerComments.show(v, n);
+  try {
+    sessionStorage.setItem("giscus-return-to", `/${v}/chapter-${n}`);
+  } catch {}
+  $("#end-note").textContent =
+    idx === catalog[v].length - 1
+      ? "You have reached the end of this edition."
+      : "";
+  const prior = state.progress[v];
+  const ratio = prior?.number === n ? prior.ratio || 0 : 0;
+  state.progress[v] = { number: n, ratio };
+  save();
+  requestAnimationFrame(() => {
+    scrollTo(
+      0,
+      ratio * Math.max(0, document.documentElement.scrollHeight - innerHeight),
+    );
+    restoring = false;
+  });
+}
+
 async function route() {
   const id = ++loadId;
   window.readerComments.clear();
-  if (checkIsIndex()) {
+  const routeInfo = getRouteInfo();
+
+  if (routeInfo.mode === "index") {
     current = null;
+    currentEdition = null;
     $("#home").hidden = true;
     $("#reader").hidden = true;
     $("#chapter-index").hidden = false;
-    const v = new URLSearchParams(location.search).get("edition");
-    if (["first", "revised"].includes(v)) choose(v);
+    const ed = routeInfo.edition;
+    if (ed && ["first", "revised"].includes(ed)) {
+      choose(ed);
+    } else {
+      // /chapters fallback: use saved version
+      choose(version);
+    }
     indexRender();
     return;
   }
-  const match = location.hash.match(/^#read\/(first|revised)\/(\d+)$/);
-  if (!match) {
-    current = null;
-    $("#home").hidden = false;
+
+  if (routeInfo.mode === "reader") {
+    const v = routeInfo.edition, n = routeInfo.n;
+    if (!catalog) return; // wait for catalog
+    const entry = catalog[v]?.find((c) => c.number === n);
+    if (!entry) {
+      toast("This chapter does not exist.");
+      location.href = "/";
+      return;
+    }
+    choose(v);
+    current = entry;
+    currentEdition = v;
+    $("#home").hidden = true;
     $("#chapter-index").hidden = true;
-    $("#reader").hidden = true;
-    choose(version);
-    document.title = "The World After the Fall — Reader";
-    scrollTo(0, 0);
-    return;
-  }
-  const v = match[1],
-    n = Number(match[2]),
-    entry = catalog[v].find((c) => c.number === n);
-  if (!entry) {
-    toast("This chapter does not exist.");
-    location.hash = "";
-    return;
-  }
-  choose(v);
-  current = entry;
-  $("#home").hidden = true;
-  $("#chapter-index").hidden = true;
-  $("#reader").hidden = false;
-  $("#chapter").textContent = "Opening chapter…";
-  $("#edition-label").textContent =
-    `${v === "first" ? "First Edition" : "Revised"} / ${n} of ${catalog[v].length}`;
-  const idx = catalog[v].indexOf(entry);
-  $("#prev").disabled = idx === 0;
-  $("#next").disabled = idx === catalog[v].length - 1;
-  $("#prev").onclick = () => navigate(-1);
-  $("#next").onclick = () => navigate(1);
-  mark();
-  restoring = true;
-  try {
-    const res = await fetch(entry.path);
-    if (!res.ok) throw Error();
-    const data = await res.json();
-    if (id !== loadId) return;
-    $("#chapter").innerHTML = data.html;
-    window.readerComments.show(v, n);
-    document.title = data.title + " — " + v + " · TWATF";
-    $("#end-note").textContent =
-      idx === catalog[v].length - 1
-        ? "You have reached the end of this edition."
-        : "";
-    const prior = state.progress[v];
-    const ratio = prior?.number === n ? prior.ratio || 0 : 0;
-    state.progress[v] = { number: n, ratio };
-    save();
-    requestAnimationFrame(() => {
+    $("#reader").hidden = false;
+    const idx = catalog[v].indexOf(entry);
+    $("#prev").disabled = idx === 0;
+    $("#next").disabled = idx === catalog[v].length - 1;
+    $("#prev").onclick = () => navigate(-1);
+    $("#next").onclick = () => navigate(1);
+    mark();
+    restoring = true;
+
+    // Check for prerendered content
+    const chapterEl = $("#chapter");
+    const prerendered = chapterEl.dataset.prerendered;
+    if (prerendered === `${v}/${n}`) {
+      // Content already in DOM — no fetch, no title override
+      afterChapterLoaded(v, n, entry, idx);
+      return;
+    }
+
+    chapterEl.textContent = "Opening chapter…";
+    $("#edition-label").textContent =
+      `${v === "first" ? "First Edition" : "Revised"} / ${n} of ${catalog[v].length}`;
+
+    try {
+      const res = await fetch(entry.path);
+      if (!res.ok) throw Error();
+      const data = await res.json();
       if (id !== loadId) return;
-      scrollTo(
-        0,
-        ratio *
-          Math.max(0, document.documentElement.scrollHeight - innerHeight),
-      );
+      chapterEl.innerHTML = data.html;
+      document.title = data.title + " — " + v + " · TWATF";
+      afterChapterLoaded(v, n, entry, idx);
+    } catch {
       restoring = false;
-    });
-  } catch {
-    restoring = false;
-    $("#chapter").textContent =
-      "This chapter could not load. Check your connection and reload the page.";
+      chapterEl.textContent =
+        "This chapter could not load. Check your connection and reload the page.";
+    }
+    return;
   }
+
+  // Home
+  current = null;
+  currentEdition = null;
+  $("#home").hidden = false;
+  $("#chapter-index").hidden = true;
+  $("#reader").hidden = true;
+  choose(version);
+  document.title = "The World After the Fall — Reader";
+  scrollTo(0, 0);
 }
+
 function navigate(delta) {
   storePosition();
   const a = catalog[version],
     i = a.findIndex((c) => c.number === current.number),
     c = a[i + delta];
-  if (c) location.hash = `read/${version}/${c.number}`;
+  if (c) location.href = `/${version}/chapter-${c.number}`;
 }
-$("#start").onclick = goIndex;
+
+// Wire up static DOM
+const startEl = $("#start");
+if (startEl) {
+  if (startEl.tagName === "A") {
+    startEl.addEventListener("click", () => storePosition());
+  } else {
+    startEl.onclick = goIndex;
+  }
+}
 document
   .querySelectorAll("[data-version]")
   .forEach((b) => (b.onclick = () => choose(b.dataset.version)));
@@ -333,9 +432,9 @@ $("#chapter-list").onclick = () => openList();
 $("#bookmarks").onclick = () => openList(true);
 $("#back").onclick = () => {
   storePosition();
-  location.hash = "";
+  location.href = "/";
 };
-$(".brand").href = "index.html";
+$(".brand").href = "/";
 $(".brand").onclick = storePosition;
 $("#settings").onclick = () => $("#preferences").showModal();
 document
@@ -365,9 +464,7 @@ $("#bookmark").onclick = () => {
 $("#contents").addEventListener("close", () =>
   document.body.classList.remove("chapter-popup-open"),
 );
-addEventListener("hashchange", () => {
-  if (catalog) route();
-});
+
 let timer;
 addEventListener(
   "scroll",
@@ -399,8 +496,7 @@ $("#index-sort").onclick = () => {
 };
 $("#index-version").onchange = (e) => {
   choose(e.target.value);
-  history.replaceState(null, "", `chapters.html?edition=${version}`);
-  indexRender();
+  location.href = `/${version}`;
 };
 settings();
 choose(version);
@@ -414,9 +510,12 @@ fetch("data/catalog.json")
     route();
   })
   .catch(() => {
-    $("#start").disabled = true;
-    $("#resume-note").textContent =
-      "Unable to load the library. Please reload when your connection returns.";
+    const startEl2 = $("#start");
+    if (startEl2) startEl2.disabled = true;
+    const resumeNote = $("#resume-note");
+    if (resumeNote)
+      resumeNote.textContent =
+        "Unable to load the library. Please reload when your connection returns.";
   });
 
 function resizeText(delta) {
@@ -485,3 +584,4 @@ $("#size-up").onclick = () => resizeText(1);
     }
   });
 })();
+}

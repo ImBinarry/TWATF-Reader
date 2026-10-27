@@ -86,7 +86,7 @@
     const image =
       state.source === "color"
         ? "none"
-        : `url(${JSON.stringify(state.source === "custom" && customURL ? customURL : state.source === "url" && remoteURL ? remoteURL : "assets/background.png")})`;
+        : `url(${JSON.stringify(state.source === "custom" && customURL ? customURL : state.source === "url" && remoteURL ? remoteURL : "assets/background.webp")})`;
     root.style.setProperty("--wallpaper", image);
     root.style.setProperty("--wallpaper-color", state.color);
     root.style.setProperty("--wallpaper-blur", state.blur + "px");

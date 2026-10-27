@@ -4,13 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#101411" />
-    <meta
-      name="description"
-      content="Read The World After the Fall web novel online - First and Revised Editions."
-    />
-    <title>TWATF-Reader</title>
+    <meta name="description" content="Read The World After the Fall (TWATF) by Sing Shong online. First and Revised editions, bookmarks, reading settings and EPUB downloads." />
+    <meta name="google-site-verification" content="oTbuVgkCfL34Q6NUgIAdPi7lpqYMtscVbU-0ZKBugUI" />
+    <link rel="canonical" href="https://twatf.pages.dev/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="The World After the Fall Reader" />
+    <meta property="og:title" content="The World After the Fall (TWATF) – Read Online | TWATF Reader" />
+    <meta property="og:description" content="Read The World After the Fall (TWATF) by Sing Shong online. First and Revised editions, bookmarks, reading settings and EPUB downloads." />
+    <meta property="og:url" content="https://twatf.pages.dev/" />
+    <meta property="og:image" content="https://twatf.pages.dev/assets/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>The World After the Fall (TWATF) – Read Online | TWATF Reader</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="icon" href="assets/icon.png" type="image/png/">
+    <link rel="icon" href="assets/icon.png" type="image/png">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"The World After the Fall Reader","alternateName":["TWATF","TWATF Reader"],"url":"https://twatf.pages.dev/"}</script>
+    <meta name="twitter:title" content="The World After the Fall (TWATF) – Read Online | TWATF Reader" />
+    <meta name="twitter:description" content="Read The World After the Fall (TWATF) by Sing Shong online. First and Revised editions, bookmarks, reading settings and EPUB downloads." />
   </head>
   <body data-theme="oled">
     <header>
@@ -119,8 +128,10 @@
           <div class="orbit"></div>
           <img
             id="cover"
-            src="assets/revised_upscaled_2.png"
+            src="assets/revised-cover.webp"
             alt="The World After the Fall book cover"
+            width="800"
+            height="1137"
           /><span class="art-caption">A WORLD BEYOND THE TOWER</span>
         </div>
         <div class="intro">
@@ -139,7 +150,7 @@
             </button>
           </fieldset>
           <div class="actions">
-            <button class="primary" id="start">Chapters <span>↗</span></button
+            <a class="primary" id="start" href="/revised">Chapters <span>↗</span></a
             ><a id="download" href="assets/The_World_After_The_Fall_Revised.epub" download
               >Download EPUB ↓</a
             >
@@ -147,21 +158,27 @@
           <p id="resume-note" class="muted">
             Your place is saved automatically on this device.
           </p>
+          <nav class="browse-editions" aria-label="Browse editions">
+            <a href="/first">First Edition ({{FIRST_COUNT}} chapters)</a>
+            <a href="/revised">Revised Edition ({{REVISED_COUNT}} chapters)</a>
+          </nav>
         </div>
       </section>
     </main>
     <main id="chapter-index" hidden>
       <aside class="index-book">
-        <a href="index.html" class="index-back">← Home</a
+        <a href="/" class="index-back">← Home</a
         ><img
           id="index-cover"
-          src="assets/revised_upscaled_2.png"
+          src="assets/revised-cover.webp"
           alt="The World After the Fall cover"
+          width="800"
+          height="1137"
         />
         <h1>The World<br />After the Fall</h1>
         <p class="eyebrow">BY SING SHONG</p>
         <div class="index-actions">
-          <a class="primary" id="index-resume" href="index.html#read/revised/1"
+          <a class="primary" id="index-resume" href="/revised/chapter-1"
             >Start reading →</a
           ><a
             id="index-download"
@@ -210,8 +227,7 @@
     </main>
     <section id="reader" hidden>
       <div class="reader-meta">
-        <button id="back">← Home</button><span id="edition-label"></span
-        ><button id="bookmark">☆ Bookmark</button>
+        <button id="back">← Home</button><span id="edition-label"></span><button id="bookmark">☆ Bookmark</button>
       </div>
       <article id="chapter" tabindex="-1"></article>
       <div class="reader-nav">

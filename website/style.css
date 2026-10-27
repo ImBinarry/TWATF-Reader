@@ -789,7 +789,7 @@ body::before {
   position: fixed;
   inset: -3px;
   z-index: -2;
-  background: url("assets/background.png") center center/cover no-repeat;
+  background: url("assets/background.webp") center center/cover no-repeat;
   filter: blur(1px) brightness(0.7);
   pointer-events: none;
 }
@@ -953,7 +953,7 @@ footer {
 }
 .identity-art {
   height: 160px;
-  background: url("assets/background.png") center 43% / cover;
+  background: url("assets/background.webp") center 43% / cover;
 }
 .identity-copy {
   padding: 0 25px 24px;
@@ -1264,7 +1264,7 @@ body > header > nav {
 }
 /* User-controlled wallpaper, shared by every page. */
 :root {
-  --wallpaper: url("assets/background.png");
+  --wallpaper: url("assets/background.webp");
   --wallpaper-color: #101411;
   --wallpaper-blur: 1px;
   --wallpaper-brightness: 0.7;
@@ -1660,3 +1660,69 @@ body.header-hidden > header {
 }
 
 
+
+/* ── Visually hidden (screen-reader only) ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Edition browse links (homepage / chapters page) ── */
+.browse-editions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 0;
+}
+.browse-editions a {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-family: var(--font-ui, "DM Sans", system-ui, sans-serif);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: border-color 0.15s, color 0.15s;
+}
+.browse-editions a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Chapter nav links (prev / all / next) on static chapter pages ── */
+.chapter-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 32px 0 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-ui, "DM Sans", system-ui, sans-serif);
+  font-size: 0.9rem;
+}
+.chapter-links a {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.chapter-links a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--panel) 60%, transparent);
+}
+.chapter-links a[rel="prev"] { margin-right: auto; }
+.chapter-links a[rel="next"] { margin-left: auto; }

@@ -14,26 +14,28 @@
         window.close();
       } catch {}
     } else {
-      let returnTo =
-        location.hash && location.hash.startsWith("#read/")
-          ? location.hash
-          : sessionStorage.getItem("giscus-return-to");
+      // returnTo is now a path like /first/chapter-5
+      let returnTo = sessionStorage.getItem("giscus-return-to");
 
       if (!returnTo) {
         try {
           const state = JSON.parse(localStorage.getItem("twatf-reader") || "{}");
           const v = state.version || "first";
           const n = state.progress?.[v]?.number || 1;
-          returnTo = `#read/${v}/${n}`;
+          returnTo = `/${v}/chapter-${n}`;
         } catch {}
       }
 
       params.delete("giscus");
       const qs = params.toString() ? `?${params.toString()}` : "";
-      const cleanUrl = `${location.pathname}${qs}${returnTo || ""}`;
+      // Navigate cleanly to the chapter path (removes the ?giscus param)
+      const cleanUrl = returnTo
+        ? returnTo + qs
+        : `${location.pathname}${qs}`;
       history.replaceState(null, "", cleanUrl);
-      if (returnTo && location.hash !== returnTo) {
-        location.hash = returnTo;
+      // If we're not already on the correct chapter path, navigate there
+      if (returnTo && location.pathname !== returnTo.replace(/\?.*$/, "")) {
+        location.replace(cleanUrl);
       }
     }
   }
@@ -88,7 +90,7 @@
       active = `twatf-${edition}-chapter-${number}`;
       activeEdition = edition;
       try {
-        sessionStorage.setItem("giscus-return-to", `#read/${edition}/${number}`);
+        sessionStorage.setItem("giscus-return-to", `/${edition}/chapter-${number}`);
       } catch {}
       const section = document.getElementById("comments"),
         status = document.getElementById("comments-status");
