@@ -109,11 +109,13 @@ function indexRender() {
   $("#index-version").value = version;
   $("#index-download").href = epubs[version];
   $("#index-resume").href = `/${version}/chapter-${resumeN}`;
-  $("#index-resume").textContent = p
-    ? `Continue · Chapter ${p.number} →`
-    : "Start reading →";
-  $("#index-description").textContent =
-    `${version === "first" ? "First edition" : "Revised edition"} · ${catalog[version].length} chapters`;
+  $("#index-resume-label").textContent = p
+    ? "Continue reading"
+    : "Start reading";
+  $("#index-resume-chapter").textContent = `Chapter ${resumeN}`;
+  $("#index-edition-value").textContent =
+    version === "first" ? "First" : "Revised";
+  $("#index-chapters-value").textContent = catalog[version].length;
   const q = $("#index-search").value.trim().toLowerCase();
   let rows = catalog[version].filter(
     (c) => c.title.toLowerCase().includes(q) || String(c.number) === q,
@@ -148,10 +150,6 @@ function indexRender() {
     a.append(label, h, badge);
     $("#index-results").append(a);
   });
-}
-function goIndex() {
-  storePosition();
-  location.href = `/${version}`;
 }
 function support(kind) {
   const donations = kind === "donations";
@@ -204,15 +202,9 @@ function choose(v) {
   if (dlEl) dlEl.href = epubs[v];
   $("#list-version").value = v;
   const p = state.progress[v];
-  // Update the #start link href if it exists as an <a>
+  // Update the #start link href if it exists
   const startEl = $("#start");
-  if (startEl) {
-    if (startEl.tagName === "A") {
-      startEl.href = `/${v}`;
-    } else {
-      startEl.innerHTML = "Chapters <span>↗</span>";
-    }
-  }
+  if (startEl) startEl.href = `/${v}`;
   const resumeNote = $("#resume-note");
   if (resumeNote) {
     resumeNote.textContent = p
@@ -418,13 +410,7 @@ function navigate(delta) {
 
 // Wire up static DOM
 const startEl = $("#start");
-if (startEl) {
-  if (startEl.tagName === "A") {
-    startEl.addEventListener("click", () => storePosition());
-  } else {
-    startEl.onclick = goIndex;
-  }
-}
+if (startEl) startEl.addEventListener("click", () => storePosition());
 document
   .querySelectorAll("[data-version]")
   .forEach((b) => (b.onclick = () => choose(b.dataset.version)));

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="index-page">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -141,18 +141,73 @@
             refuses to turn back.
           </p>
           <fieldset class="editions">
-            <legend>CHOOSE YOUR EDITION</legend>
-            <button data-version="first">
-              First Edition <span>{{FIRST_COUNT}} chapters</span></button
-            ><button data-version="revised" class="selected">
-              Revised <span>{{REVISED_COUNT}} chapters</span>
-            </button>
+            <legend>Choose an edition</legend>
+            <div class="edition-list">
+              <button type="button" data-version="first" aria-pressed="false">
+                <span class="edition-copy">
+                  <span class="edition-title">First Edition</span>
+                  <span class="edition-note">Original 2016 release</span>
+                </span>
+                <span class="edition-folio"
+                  ><strong>{{FIRST_COUNT}}</strong><span>chapters</span></span
+                >
+              </button>
+              <button
+                type="button"
+                data-version="revised"
+                class="selected"
+                aria-pressed="true"
+              >
+                <span class="edition-copy">
+                  <span class="edition-title">Revised Edition</span>
+                  <span class="edition-note">Reworked continuity</span>
+                </span>
+                <span class="edition-folio"
+                  ><strong>{{REVISED_COUNT}}</strong><span>chapters</span></span
+                >
+              </button>
+            </div>
           </fieldset>
           <div class="actions">
-            <button class="primary" id="start">Chapters <span>↗</span></button
-            ><a id="download" href="assets/The_World_After_The_Fall_Revised.epub" download
-              >Download EPUB ↓</a
+            <a class="primary" id="start" href="/revised">
+              <span>Browse chapters</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14" />
+                <path d="m13 6 6 6-6 6" />
+              </svg>
+            </a>
+            <a
+              id="download"
+              href="assets/The_World_After_The_Fall_Revised.epub"
+              download
             >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 3v12" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M4 21h16" />
+              </svg>
+              <span>Download EPUB</span>
+            </a>
           </div>
           <p id="resume-note" class="muted">
             Your place is saved automatically on this device.
@@ -171,24 +226,70 @@
           height="1137"
         />
         <h1>The World<br />After the Fall</h1>
-        <p class="eyebrow">BY SING SHONG</p>
+        <dl class="index-meta" aria-label="Novel details">
+          <div>
+            <dt>Author</dt>
+            <dd>Sing Shong</dd>
+          </div>
+          <div>
+            <dt>Edition</dt>
+            <dd id="index-edition-value">Revised</dd>
+          </div>
+          <div>
+            <dt>Chapters</dt>
+            <dd id="index-chapters-value">{{REVISED_COUNT}}</dd>
+          </div>
+        </dl>
         <div class="index-actions">
-          <a class="primary" id="index-resume" href="/revised/chapter-1"
-            >Start reading →</a
-          ><a
+          <a class="primary" id="index-resume" href="/revised/chapter-1">
+            <span class="index-resume-copy">
+              <span id="index-resume-label">Start reading</span>
+              <span id="index-resume-chapter" class="index-resume-chapter"
+                >Chapter 1</span
+              >
+            </span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14" />
+              <path d="m13 6 6 6-6 6" />
+            </svg>
+          </a>
+          <a
             id="index-download"
             href="assets/The_World_After_The_Fall_Revised.epub"
             download
             aria-label="Download selected EPUB"
-            >↓</a
+            title="Download EPUB"
           >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3v12" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M4 21h16" />
+            </svg>
+          </a>
         </div>
         <p class="summary">
           The tower was only the beginning. Enter a world where one man refuses
           to turn back.
-        </p>
-        <p class="muted" id="index-description">
-          Revised edition · {{REVISED_COUNT}} chapters
         </p>
         <p class="muted">
           Your reading progress is saved separately for each edition on this

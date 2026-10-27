@@ -549,11 +549,16 @@ def generate_edition_page(out, edition, rows, base_chapters_html, books):
         markup, count=1,
     )
 
-    # 8. Set #index-description
-    edition_label = "First edition" if edition == "first" else "Revised edition"
+    # 8. Set edition metadata
+    edition_label = "First" if edition == "first" else "Revised"
     markup = re.sub(
-        r'(<p\s[^>]*id=["\']index-description["\'][^>]*>)[^<]*(</p>)',
-        rf'\g<1>{xml(edition_label)} · {count} chapters\g<2>',
+        r'(<dd\s[^>]*id=["\']index-edition-value["\'][^>]*>)[^<]*(</dd>)',
+        rf'\g<1>{edition_label}\g<2>',
+        markup, count=1,
+    )
+    markup = re.sub(
+        r'(<dd\s[^>]*id=["\']index-chapters-value["\'][^>]*>)[^<]*(</dd>)',
+        rf'\g<1>{count}\g<2>',
         markup, count=1,
     )
 
@@ -626,65 +631,6 @@ def generate_sitemap(out, books):
     lines.append("</urlset>")
     (out / "sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return urls
-
-
-def update_homepage(out, books):
-    """Update out/index.html: fix card hrefs, update resume href, add browse-editions nav."""
-    p = out / "index.html"
-    markup = p.read_text(encoding="utf-8")
-
-    # Replace generated card hrefs for revised from "index.html#read/revised/N" to "/revised/chapter-N"
-    markup = re.sub(
-        r'href="index\.html#read/revised/(\d+)"',
-        lambda m: f'href="/revised/chapter-{m.group(1)}"',
-        markup,
-    )
-
-    # Also fix first edition cards if any
-    markup = re.sub(
-        r'href="index\.html#read/first/(\d+)"',
-        lambda m: f'href="/first/chapter-{m.group(1)}"',
-        markup,
-    )
-
-    # Add browse-editions nav if not present
-    if 'class="browse-editions"' not in markup:
-        first_count = len(books["first"])
-        revised_count = len(books["revised"])
-        browse_nav = (
-            f'\n          <nav class="browse-editions" aria-label="Browse editions">\n'
-            f'            <a href="/first">First Edition ({first_count} chapters)</a>\n'
-            f'            <a href="/revised">Revised Edition ({revised_count} chapters)</a>\n'
-            f'          </nav>'
-        )
-        # Insert after #resume-note paragraph
-        markup = re.sub(
-            r'(</p>\s*\n\s*</div>\s*\n\s*</section>\s*\n\s*</main>\s*\n\s*<main id="chapter-index")',
-            browse_nav + r'\n        \1',
-            markup, count=1,
-        )
-
-    p.write_text(markup, encoding="utf-8")
-
-
-def update_chapters_page(out, books):
-    """Update out/chapters.html: fix card hrefs and update resume href."""
-    p = out / "chapters.html"
-    markup = p.read_text(encoding="utf-8")
-
-    # Replace generated card hrefs
-    markup = re.sub(
-        r'href="index\.html#read/revised/(\d+)"',
-        lambda m: f'href="/revised/chapter-{m.group(1)}"',
-        markup,
-    )
-    markup = re.sub(
-        r'href="index\.html#read/first/(\d+)"',
-        lambda m: f'href="/first/chapter-{m.group(1)}"',
-        markup,
-    )
-
-    p.write_text(markup, encoding="utf-8")
 
 
 def assert_no_placeholders(pages):
@@ -791,27 +737,11 @@ def build(root=ROOT):
         )
         p.write_text(s, encoding="utf-8")
 
-        # Update homepage meta and browse-editions nav
+        # Update homepage meta
         idx_p = out / "index.html"
         idx_s = idx_p.read_text(encoding="utf-8")
         idx_s = _remove_head_meta(idx_s)
         idx_s = _insert_head_block(idx_s, _build_homepage_head())
-        # Add browse-editions nav if not present
-        if 'class="browse-editions"' not in idx_s:
-            first_count = len(books["first"])
-            revised_count = len(books["revised"])
-            browse_nav = (
-                f'\n          <nav class="browse-editions" aria-label="Browse editions">\n'
-                f'            <a href="/first">First Edition ({first_count} chapters)</a>\n'
-                f'            <a href="/revised">Revised Edition ({revised_count} chapters)</a>\n'
-                f'          </nav>'
-            )
-            # Insert before closing </div> of .intro > .actions container (after resume-note)
-            idx_s = re.sub(
-                r'(id="resume-note"[^<]*</p>)',
-                r'\1' + browse_nav,
-                idx_s, count=1,
-            )
         # Ensure index.html has exactly 1 h1 (in #home)
         def demote_index_h1(m):
             section = m.group(0)

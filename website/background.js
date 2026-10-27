@@ -5,7 +5,7 @@
     source: "default",
     color: "#101411",
     url: "",
-    blur: 1,
+    blur: 0,
     brightness: 70,
     zoom: 100,
     x: 50,
