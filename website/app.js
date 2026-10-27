@@ -353,10 +353,34 @@ async function route() {
     $("#chapter-index").hidden = true;
     $("#reader").hidden = false;
     const idx = catalog[v].indexOf(entry);
-    $("#prev").disabled = idx === 0;
-    $("#next").disabled = idx === catalog[v].length - 1;
-    $("#prev").onclick = () => navigate(-1);
-    $("#next").onclick = () => navigate(1);
+    const prevBtn = $("#prev");
+    const nextBtn = $("#next");
+    if (prevBtn) {
+      if (idx === 0) {
+        prevBtn.setAttribute("disabled", "");
+        prevBtn.removeAttribute("href");
+        prevBtn.classList.add("disabled");
+        prevBtn.onclick = (e) => e.preventDefault();
+      } else {
+        prevBtn.removeAttribute("disabled");
+        prevBtn.classList.remove("disabled");
+        prevBtn.setAttribute("href", `/${v}/chapter-${catalog[v][idx - 1].number}`);
+        prevBtn.onclick = (e) => { e.preventDefault(); navigate(-1); };
+      }
+    }
+    if (nextBtn) {
+      if (idx === catalog[v].length - 1) {
+        nextBtn.setAttribute("disabled", "");
+        nextBtn.removeAttribute("href");
+        nextBtn.classList.add("disabled");
+        nextBtn.onclick = (e) => e.preventDefault();
+      } else {
+        nextBtn.removeAttribute("disabled");
+        nextBtn.classList.remove("disabled");
+        nextBtn.setAttribute("href", `/${v}/chapter-${catalog[v][idx + 1].number}`);
+        nextBtn.onclick = (e) => { e.preventDefault(); navigate(1); };
+      }
+    }
     mark();
     restoring = true;
 

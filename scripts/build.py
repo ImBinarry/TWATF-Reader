@@ -453,11 +453,27 @@ def generate_chapter_pages(out, edition, rows, base_index_html):
             markup, count=1,
         )
 
-        # 8. Set disabled on #prev for chapter 1, #next for last
+        # 8. Single, unified .reader-nav with real SEO rel="prev"/rel="next" links
         if i == 0:
-            markup = re.sub(r'(<button\s[^>]*id=["\']prev["\'][^>]*)>', r'\1 disabled>', markup, count=1)
+            prev_html = '<button id="prev" disabled>← Previous</button>'
+        else:
+            prev_n = rows[i - 1]["number"]
+            prev_html = f'<a id="prev" rel="prev" href="/{edition}/chapter-{prev_n}">← Previous</a>'
+
+        chapters_html = '<button id="chapter-list" aria-haspopup="dialog" aria-controls="contents">Chapters</button>'
+
         if i == count - 1:
-            markup = re.sub(r'(<button\s[^>]*id=["\']next["\'][^>]*)>', r'\1 disabled>', markup, count=1)
+            next_html = '<button id="next" disabled>Next →</button>'
+        else:
+            next_n = rows[i + 1]["number"]
+            next_html = f'<a id="next" rel="next" href="/{edition}/chapter-{next_n}">Next →</a>'
+
+        single_reader_nav = f'<div class="reader-nav">\n        {prev_html}\n        {chapters_html}\n        {next_html}\n      </div>'
+        markup = re.sub(
+            r'<div\s[^>]*class=["\'][^"\']*reader-nav[^"\']*["\'][^>]*>.*?</div>',
+            single_reader_nav,
+            markup, count=1, flags=re.DOTALL,
+        )
 
         # 9. Set #end-note
         end_note_text = "You have reached the end of this edition." if i == count - 1 else ""
@@ -466,37 +482,6 @@ def generate_chapter_pages(out, edition, rows, base_index_html):
             rf'\g<1>{xml(end_note_text)}\g<2>',
             markup, count=1,
         )
-
-        # 10. Add .chapter-links nav after .reader-nav block
-        nav_parts = []
-        if i > 0:
-            prev_n = rows[i - 1]["number"]
-            nav_parts.append(f'<a rel="prev" href="/{edition}/chapter-{prev_n}">← Previous chapter</a>')
-        nav_parts.append(f'<a href="/{edition}">All chapters</a>')
-        if i < count - 1:
-            next_n = rows[i + 1]["number"]
-            nav_parts.append(f'<a rel="next" href="/{edition}/chapter-{next_n}">Next chapter →</a>')
-        chapter_nav = (
-            '\n<nav class="chapter-links" aria-label="Chapter navigation">\n  '
-            + "\n  ".join(nav_parts)
-            + "\n</nav>'s"
-        ).replace("'s", "")
-        chapter_nav = (
-            '\n<nav class="chapter-links" aria-label="Chapter navigation">\n  '
-            + "\n  ".join(nav_parts)
-            + "\n</nav>"
-        )
-        # Insert after </div><!--/.reader-nav-->
-        markup = re.sub(
-            r'(</div>\s*<!-- end .?reader-nav|(<div\s[^>]*class=["\'][^"\']*reader-nav[^"\']*["\'][^>]*>.*?</div>))',
-            lambda m: m.group(0) + chapter_nav,
-            markup,
-            count=1,
-            flags=re.DOTALL,
-        )
-
-        # Verify insertion
-        assert 'class="chapter-links"' in markup, f"chapter-links not inserted for {edition}/chapter-{n}"
 
         # Write file
         (edition_dir / f"chapter-{n}.html").write_text(markup, encoding="utf-8")
@@ -625,12 +610,18 @@ def generate_sitemap(out, books):
     for edition in ("first", "revised"):
         for c in books[edition]:
             urls.append(f"{SITE_URL}/{edition}/chapter-{c['number']}")
-    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
+        '        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">',
+    ]
     for url in urls:
         lines.append(f"  <url>\n    <loc>{xml(url)}</loc>\n  </url>")
     lines.append("</urlset>")
     (out / "sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return urls
+
 
 
 def assert_no_placeholders(pages):
@@ -742,6 +733,7 @@ def build(root=ROOT):
         idx_s = idx_p.read_text(encoding="utf-8")
         idx_s = _remove_head_meta(idx_s)
         idx_s = _insert_head_block(idx_s, _build_homepage_head())
+
         # Ensure index.html has exactly 1 h1 (in #home)
         def demote_index_h1(m):
             section = m.group(0)
