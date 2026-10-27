@@ -219,6 +219,23 @@ function choose(v) {
       ? `Continue ${v} edition · Chapter ${p.number}. Your place is saved on this device.`
       : "Your place is saved automatically on this device.";
   }
+  updateResumeEditions();
+}
+function updateResumeEditions() {
+  const firstP = state.progress["first"];
+  const firstN = firstP?.number || 1;
+  const firstEl = $("#resume-first");
+  if (firstEl) {
+    firstEl.href = `/first/chapter-${firstN}`;
+    firstEl.textContent = `First Edition (Chapter ${firstN})`;
+  }
+  const revP = state.progress["revised"];
+  const revN = revP?.number || 1;
+  const revEl = $("#resume-revised");
+  if (revEl) {
+    revEl.href = `/revised/chapter-${revN}`;
+    revEl.textContent = `Revised Edition (Chapter ${revN})`;
+  }
 }
 function list() {
   if (!catalog) return;
@@ -298,6 +315,7 @@ function storePosition() {
     ratio: Math.min(1, scrollY / max),
   };
   save();
+  updateResumeEditions();
 }
 
 // Shared post-load logic (used by prerendered and fetched paths)
@@ -314,6 +332,7 @@ function afterChapterLoaded(v, n, entry, idx) {
   const ratio = prior?.number === n ? prior.ratio || 0 : 0;
   state.progress[v] = { number: n, ratio };
   save();
+  updateResumeEditions();
   requestAnimationFrame(() => {
     scrollTo(
       0,
@@ -361,10 +380,34 @@ async function route() {
     $("#chapter-index").hidden = true;
     $("#reader").hidden = false;
     const idx = catalog[v].indexOf(entry);
-    $("#prev").disabled = idx === 0;
-    $("#next").disabled = idx === catalog[v].length - 1;
-    $("#prev").onclick = () => navigate(-1);
-    $("#next").onclick = () => navigate(1);
+    const prevBtn = $("#prev");
+    const nextBtn = $("#next");
+    if (prevBtn) {
+      if (idx === 0) {
+        prevBtn.setAttribute("disabled", "");
+        prevBtn.removeAttribute("href");
+        prevBtn.classList.add("disabled");
+        prevBtn.onclick = (e) => e.preventDefault();
+      } else {
+        prevBtn.removeAttribute("disabled");
+        prevBtn.classList.remove("disabled");
+        prevBtn.setAttribute("href", `/${v}/chapter-${catalog[v][idx - 1].number}`);
+        prevBtn.onclick = (e) => { e.preventDefault(); navigate(-1); };
+      }
+    }
+    if (nextBtn) {
+      if (idx === catalog[v].length - 1) {
+        nextBtn.setAttribute("disabled", "");
+        nextBtn.removeAttribute("href");
+        nextBtn.classList.add("disabled");
+        nextBtn.onclick = (e) => e.preventDefault();
+      } else {
+        nextBtn.removeAttribute("disabled");
+        nextBtn.classList.remove("disabled");
+        nextBtn.setAttribute("href", `/${v}/chapter-${catalog[v][idx + 1].number}`);
+        nextBtn.onclick = (e) => { e.preventDefault(); navigate(1); };
+      }
+    }
     mark();
     restoring = true;
 
@@ -425,6 +468,8 @@ if (startEl) {
     startEl.onclick = goIndex;
   }
 }
+$("#resume-first")?.addEventListener("click", () => storePosition());
+$("#resume-revised")?.addEventListener("click", () => storePosition());
 document
   .querySelectorAll("[data-version]")
   .forEach((b) => (b.onclick = () => choose(b.dataset.version)));
